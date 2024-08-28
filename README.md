@@ -1,7 +1,17 @@
 # ST7789-STM32
 Using STM32's Hardware SPI(with simple DMA support) to drive a ST7789 based LCD display.
 
-## How to use ?
+# Table of Contents
+* 1. [How to use ?](#Howtouse)
+* 2. [SPI Interface](#SPIInterface)
+* 3. [Supported Displays](#SupportedDisplays)
+* 4. [Why this fork exist?](#Whythisforkexist)
+* 5. [How to create an RLE compressed image?](#HowtocreateanRLEcompressedimage)
+* 6. [HAL SPI Performance](#HALSPIPerformance)
+		* 6.1. [Reference](#Reference)
+		* 6.2. [Contributor](#Contributor)
+
+##  1. <a name='Howtouse'></a>How to use ?
 
 1. Copy the "st7789" dir to your project src path, add it to include path   
 2. Include `"st7789.h"` in where you want to use this driver.   
@@ -15,7 +25,7 @@ This code has been tested on 240x240 & 170x320 LCD screens.
 > DMA is only useful when huge block write is performed, e.g: Fill full screen or draw a bitmap.  
 > Most MCUs don't have a large enough RAM, so a framebuffer is "cut" into pieces, e.g: a 240x5 pixel buffer for a 240x240 screen.  
 
-## SPI Interface
+##  2. <a name='SPIInterface'></a>SPI Interface
 
 If you are using **Dupont Line(or jumper wire)**, please notice that your CLK frequency should not exceed 40MHz (may vary, depends on the length of your wire), **otherwise data transfer will collapse!**  
 For higher speed applications, it's recommended to **use PCB** rather than jumper wires.  
@@ -26,7 +36,7 @@ In STM32CubeMX/CubeIDE, config the SPI params as follow:
 
 I've had a simple test, connect the screen and mcu via 20cm dupont line, and it works normally on **21.25MB/s**. And if I connect a logic analyzer to the clk and data lines(15cm probe), **21.25MB/s doesn't work anymore**, I have to lower its datarate to 10.625MB/s. Using PCB to connect the display, it works up to **40MB/s** and still looks nice.
 
-## Supported Displays
+##  3. <a name='SupportedDisplays'></a>Supported Displays
 
 - 135*240   
 - 240*240   
@@ -38,7 +48,23 @@ If you like, you could customize it's resolution to drive different displays you
 
 For more details, please refer to ST7789's datasheet.  
 
-## HAL SPI Performance
+##  4. <a name='Whythisforkexist'></a>Why this fork exist?
+For my final bachelor project, I needed a library to drive an [DFR0664](https://wiki.dfrobot.com/2.0_Inches_320_240_IPS_TFT_LCD_Display_with_MicroSD_Card_Breakout_SKU_DFR0664) display of 240 by 320 pixels with the famous ST7789 driver.
+However, I found that the library was really slow even when using DMA...
+So I decided to optimize it. For example, the characters were drawn pixel by pixel with a complexity of O(n^2) and now the library fills a buffer and everything is sent at the same time to the screen, reducing the complexity to O(n).
+
+I've also added a function for drawing images compressed in RLE format. This makes it possible to have images that take up less space in flash memory.
+
+Finally, I implemented a `wmemset` function. This function is used to fill an area of the screen with a color, speeding up the fill time.
+
+
+##  5. <a name='HowtocreateanRLEcompressedimage'></a>How to create an RLE compressed image?
+1. Used this tool to generate an hardcoded image. [LCD-Image-converter](https://lcd-image-converter.riuson.com/en/about/) you can use the default parameters.
+2. Use the `compressIMG.py` script to convert your .h image.
+3. Add your RLE image in your project and draw it with `ST7789_DrawImageComp` function.
+
+
+##  6. <a name='HALSPIPerformance'></a>HAL SPI Performance
 
 - DMA Enabled
 
@@ -60,10 +86,10 @@ Especially in some functions where need a little math, the cpu needs to calculat
 
 # Special thanks to
 
-#### Reference
+####  6.1. <a name='Reference'></a>Reference
 - [ananevilya's Arduino-ST7789-Lib](https://github.com/ananevilya/Arduino-ST7789-Library)  
 - [afiskon's stm32-st7735 lib](https://github.com/afiskon/stm32-st7735)
 
-#### Contributor
+####  6.2. <a name='Contributor'></a>Contributor
 - [JasonLrh](https://github.com/JasonLrh)  
 - [ZiangCheng](https://github.com/ZiangCheng)  
