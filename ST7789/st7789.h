@@ -1,34 +1,43 @@
 #ifndef __ST7789_H
 #define __ST7789_H
-
 #include "fonts.h"
 #include "main.h"
+#include "tim.h"
 
 /* choose a Hardware SPI port to use. */
 #define ST7789_SPI_PORT hspi1
 extern SPI_HandleTypeDef ST7789_SPI_PORT;
+/* choose a Hardware PWM to use.*/
+#define ST7789_PWM_TIM htim1
+extern TIM_HandleTypeDef ST7789_PWM_TIM;
+#define ST7789_PWM_CH TIM_CHANNEL_1
+#define CHxN	//Enable if using a complementary PWM (CHxN)
 
 /* choose whether use DMA or not */
 #define USE_DMA
 
+/* If you want to drive backlight choose if you want PWM or Binary(ON/OFF) control */
+#define BL_PWM	//backlite BL_PWM or BL_BIN
+
 /* If u need CS control, comment below*/
 //#define CFG_NO_CS
-
 /* Pin connection*/
-#define ST7789_RST_PORT ST7789_RST_GPIO_Port
-#define ST7789_RST_PIN  ST7789_RST_Pin
-#define ST7789_DC_PORT  ST7789_DC_GPIO_Port
-#define ST7789_DC_PIN   ST7789_DC_Pin
+#define ST7789_RST_PORT GPIOD
+#define ST7789_RST_PIN  GPIO_PIN_4
+
+#define ST7789_DC_PORT  GPIOD
+#define ST7789_DC_PIN   GPIO_PIN_3
 
 #ifndef CFG_NO_CS
-#define ST7789_CS_PORT  ST7789_CS_GPIO_Port
-#define ST7789_CS_PIN   ST7789_CS_Pin
+#define ST7789_CS_PORT  GPIOD
+#define ST7789_CS_PIN   GPIO_PIN_6
 #endif
+
+#define WINVERT(data)((data >> 8) | (data << 8)) //Invert a color (word invert)
 
 /* If u need Backlight control, uncomment below */
 //#define BLK_PORT
 //#define BLK_PIN
-
 
 /*
  * Comment one to use another.
@@ -39,14 +48,12 @@ extern SPI_HandleTypeDef ST7789_SPI_PORT;
 
 /* Choose a type you are using */
 //#define USING_135X240
-#define USING_240X240
+//#define USING_240X240
+#define USING_240X320
 //#define USING_170X320
 
 /* Choose a display rotation you want to use: (0-3) */
-//#define ST7789_ROTATION 0
-//#define ST7789_ROTATION 1
-#define ST7789_ROTATION 2				//  use Normally on 240x240
-//#define ST7789_ROTATION 3
+#define ST7789_ROTATION 1
 
 #ifdef USING_135X240
 
@@ -101,6 +108,32 @@ extern SPI_HandleTypeDef ST7789_SPI_PORT;
 
 #endif
 
+#ifdef USING_240X320
+
+#if ST7789_ROTATION == 0
+			#define ST7789_WIDTH 240
+			#define ST7789_HEIGHT 320
+			#define X_SHIFT 0
+			#define Y_SHIFT 0
+		#elif ST7789_ROTATION == 1
+#define ST7789_WIDTH 320
+#define ST7789_HEIGHT 240
+#define X_SHIFT 0
+#define Y_SHIFT 0
+#elif ST7789_ROTATION == 2
+			#define ST7789_WIDTH 240
+			#define ST7789_HEIGHT 320
+			#define X_SHIFT 0
+			#define Y_SHIFT 0
+		#elif ST7789_ROTATION == 3
+			#define ST7789_WIDTH 320
+			#define ST7789_HEIGHT 240
+			#define X_SHIFT 0
+			#define Y_SHIFT 0
+		#endif
+
+#endif
+
 #ifdef USING_170X320
 
 	#if ST7789_ROTATION == 0
@@ -132,34 +165,6 @@ extern SPI_HandleTypeDef ST7789_SPI_PORT;
     #endif
 
 #endif
-
-/**
- *Color of pen
- *If you want to use another color, you can choose one in RGB565 format.
- */
-
-#define WHITE       0xFFFF
-#define BLACK       0x0000
-#define BLUE        0x001F
-#define RED         0xF800
-#define MAGENTA     0xF81F
-#define GREEN       0x07E0
-#define CYAN        0x7FFF
-#define YELLOW      0xFFE0
-#define GRAY        0X8430
-#define BRED        0XF81F
-#define GRED        0XFFE0
-#define GBLUE       0X07FF
-#define BROWN       0XBC40
-#define BRRED       0XFC07
-#define DARKBLUE    0X01CF
-#define LIGHTBLUE   0X7D7C
-#define GRAYBLUE    0X5458
-
-#define LIGHTGREEN  0X841F
-#define LGRAY       0XC618
-#define LGRAYBLUE   0XA651
-#define LBBLUE      0X2B12
 
 /* Control Registers and constant codes */
 #define ST7789_NOP     0x00
@@ -236,11 +241,16 @@ void ST7789_DrawPixel(uint16_t x, uint16_t y, uint16_t color);
 void ST7789_Fill(uint16_t xSta, uint16_t ySta, uint16_t xEnd, uint16_t yEnd, uint16_t color);
 void ST7789_DrawPixel_4px(uint16_t x, uint16_t y, uint16_t color);
 
+#if defined(BL_PWM) || defined(BL_BIN)
+void ST7789_SetBacklight(uint8_t);
+#endif
+
 /* Graphical functions. */
 void ST7789_DrawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
 void ST7789_DrawRectangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
 void ST7789_DrawCircle(uint16_t x0, uint16_t y0, uint8_t r, uint16_t color);
 void ST7789_DrawImage(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *data);
+void ST7789_DrawImageComp(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *data, uint16_t num, uint16_t bcolor, uint16_t isTransparent);	//draw a compressed image (RLE)
 void ST7789_InvertColors(uint8_t invert);
 
 /* Text functions. */
@@ -255,6 +265,9 @@ void ST7789_DrawFilledCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color);
 
 /* Command functions */
 void ST7789_TearEffect(uint8_t tear);
+
+/* Utils functions */
+void wmemset(uint16_t *destination, uint16_t data, size_t size);
 
 /* Simple test function. */
 void ST7789_Test(void);

@@ -3,10 +3,14 @@
 
 #include "stdint.h"
 
-typedef struct {
-    const uint8_t width;
-    uint8_t height;
-    const uint16_t *data;
+/**
+ * @brief FontDef structure, describe a font of TFT display.
+ *
+ */
+typedef struct FontDef{
+    const uint8_t width;	/**< Width of a char in pixel. */
+    uint8_t height;			/**< Height of a char in pixel. */
+    const uint16_t *data;	/**< Font datas. */
 } FontDef;
 
 //Font lib.
